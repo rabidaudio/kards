@@ -4,7 +4,8 @@ plugins {
 
 allprojects {
     repositories {
-        jcenter() 
+        jcenter()
+        maven("https://dl.bintray.com/spekframework/spek-dev")
     }
 }
 
