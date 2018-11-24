@@ -7,6 +7,13 @@ enum class Suit {
 
     val isBlack: Boolean get() = !isRed
 
+    fun shortName() = when (this) {
+        Spades -> "♠"
+        Diamonds -> "♦"
+        Clubs -> "♣"
+        Hearts -> "♥"
+    }
+
     companion object {
         val ALL = Suit.values().toList()
     }

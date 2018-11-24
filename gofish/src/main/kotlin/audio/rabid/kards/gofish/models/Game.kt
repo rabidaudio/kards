@@ -28,8 +28,9 @@ data class Game(
         get() = players.filter { it.name != currentPlayerName }.map { it.info }
 
     val gameInfo: GameInfo get() = GameInfo(
+            myPlayerName = currentPlayerName,
             myHand = currentPlayer.hand.immutableCopy(),
-            myBooks = currentPlayer.books.map { it.immutableCopy() }.toSet(),
+            myBooks = currentPlayer.books.map { it.rank }.toSet(),
             deckSize = ocean.size,
             pastMoves = pastMoves,
             otherPlayers = playerInfo

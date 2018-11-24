@@ -15,14 +15,17 @@ internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val r
         // start with a 52 card deck and shuffle it
         val deck = Decks.standard().apply { shuffle(random) }
         // for each player, draw 7 cards into their hand
-        val players = playerInfo.map { (name, picker) ->
-            val hand = deck.draw(7) ?: throw IllegalArgumentException("Too many players!")
-            Player(name, picker, hand)
+        val players = playerInfo.map { (name, picker) -> Player(name, picker, handOf()) }
+        for (i in (1..7)) {
+            for (player in players) {
+                player.hand.placeOnBottom(deck.drawOne() ?: throw IllegalArgumentException("Too many players!"))
+            }
         }
         Game(deck, players)
     }
 
     fun play(ui: UI? = null): Set<PlayerName> {
+        bookAll()
         ui?.draw(game)
         while (!game.isOver) {
             step()
@@ -51,21 +54,28 @@ internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val r
                 false
             }
         }
-        game.pastMoves.add(PastMove(game.currentPlayerName, move, result, nextPlayer))
         // have players book cards from hand
-        game.players.forEach { player ->
-            player.books.addAll(player.hand.books())
-        }
+        val book = game.currentPlayer.hand.books().singleOrNull()
+        if (book != null) game.currentPlayer.books.add(book)
+
+        // sort each player's hand so it's easier to see
+        game.currentPlayer.hand.sort()
+        game.pastMoves.add(PastMove(game.currentPlayerName, move, result, nextPlayer, book?.rank))
         if (nextPlayer) game.currentPlayerName = game.nextPlayerName
     }
 
-    private fun Hand.books(): List<Book> = groupBy { it.rank }.mapNotNull { (rank, cards) ->
-        return@mapNotNull if (cards.toSet().isCompleteBook) drawAllWhere { it.rank == rank } else null
+    private fun bookAll() {
+        game.players.forEach { player ->
+            val b = player.hand.books()
+            player.books.addAll(b)
+            // sort each player's hand so it's easier to see
+            player.hand.sort()
+        }
     }
 
-    private val Set<Card>.isCompleteBook get() = !isEmpty()
-            && all { it.rank == first().rank }
-            && Suit.values().all { suit -> any { it.suit == suit } }
+    private fun Hand.books(): List<Book> = groupBy { it.rank }.mapNotNull { (rank, cards) ->
+        return@mapNotNull if (Book.isValid(cards.toSet())) Book(drawAllWhere { it.rank == rank }) else null
+    }
 
     private fun Move.run(): MoveResult {
         if (!isLegal) throw IllegalStateException("Illegal move by player ${game.currentPlayerName}")

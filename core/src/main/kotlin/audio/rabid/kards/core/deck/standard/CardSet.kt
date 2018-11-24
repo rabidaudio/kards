@@ -3,6 +3,7 @@
 package audio.rabid.kards.core.deck.standard
 
 import java.util.*
+import kotlin.Comparator
 import kotlin.random.Random
 
 typealias Deck = CardSet
@@ -58,6 +59,10 @@ class CardSet(cards: Collection<Card>): Collection<Card> {
 
     fun shuffle(random: Random) {
         cards.shuffle(random)
+    }
+
+    fun sort(comparator: Comparator<Card> = Card.DefaultComparator) {
+        cards.sortWith(comparator)
     }
 
     /**

@@ -12,6 +12,7 @@ application {
 dependencies {
     compile(project(":core"))
     compile(kotlin("stdlib-jdk8"))
+    compile("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.0.1")
 }
 
 tasks.withType<KotlinCompile> {
