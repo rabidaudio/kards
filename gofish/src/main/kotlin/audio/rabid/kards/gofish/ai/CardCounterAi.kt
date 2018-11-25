@@ -1,94 +1,126 @@
 package audio.rabid.kards.gofish.ai
 
+import audio.rabid.kards.core.deck.standard.Decks
 import audio.rabid.kards.core.deck.standard.Rank
 import audio.rabid.kards.core.deck.standard.Suit
 import audio.rabid.kards.core.deck.utils.cartesianProduct
 import audio.rabid.kards.gofish.models.*
 import java.lang.StringBuilder
 
-class CardCounterAi : MovePicker {
+object CardCounterAi : MovePicker {
+
+    private val DECK_SIZE = Decks.standard().size // 52
+    private val POSSIBLE_SUITS = Suit.ALL.size    // 4
+    private val POSSIBLE_RANKS = Rank.ALL.size    // 13
 
     override fun move(gameInfo: GameInfo): Move = Picker(gameInfo).getBestMove()
 
-    private class Picker(val gameInfo: GameInfo) {
+    class Picker(private val gameInfo: GameInfo) {
 
-        private val cardCounter = CardCounter(gameInfo.allPlayerNames)
-
-        private val probabilities by lazy { cardCounter.generateBaseScores() }
-
-        fun getBestMove(): Move {
+        private val cardCounter = CardCounter(gameInfo.playerNames).apply {
             // track all moves so far, which should give the minimum number of cards each player has
             for (pastMove in gameInfo.pastMoves) trackMove(pastMove)
+            // then, for all completed books, clear out those ranks
+            trackCompletedBooks()
             // fill in my hand, which is totally known
             trackMyHand()
+        }
+
+        private val probabilities = cardCounter.generateBaseScores().apply {
             // now fill in unknown cards with probabilities
             calculateProbabilities()
-            probabilities.printTable()
+        }
+
+        fun getProbability(playerName: PlayerName, rank: Rank): Double = probabilities.getProbability(playerName, rank)
+
+        fun getBestMove(): Move {
             val (player, rank) = probabilities.getMaxProbability(gameInfo.myRanks, gameInfo.otherPlayerNames)
             return Move(askFor = rank, from = player)
         }
 
-        private fun trackMove(pastMove: PastMove) {
-            val (playerName, move, result, turnEnded, newBook) = pastMove
+        fun debug() {
+            probabilities.printTable(gameInfo.outstandingRanks)
+        }
+
+        private fun CardCounter.trackMove(pastMove: PastMove) {
+            val (playerName, move, result, turnEnded, _) = pastMove
             // because they asked, we know they have at least one
-            cardCounter.setAtLeastOne(playerName, move.askFor)
+            setAtLeastOne(playerName, move.askFor)
             // also the askee now has none, either because they didn't have any or they were taken
-            cardCounter.setNone(move.from, move.askFor)
+            setNone(move.from, move.askFor)
             when (result) {
                 GoFish -> if (!turnEnded) {
                     // they drew that thing! so now they have one more
-                    cardCounter.add(playerName, move.askFor, 1)
+                    add(playerName, move.askFor, 1)
                 }
                 // otherwise, the askee gave all of theirs over to the asker
-                is HandOver -> cardCounter.add(playerName, move.askFor, result.cards.size)
-            }
-            // then, for all new books, clear out those ranks
-            newBook?.let { trackNewBook(it) }
-        }
-
-        private fun trackNewBook(rank: Rank) {
-            for (player in gameInfo.allPlayerNames) cardCounter.setNone(player, rank)
-        }
-
-        private fun trackMyHand() {
-            for (rank in Rank.ALL) {
-                val numberInMyHand = gameInfo.myHand.count { it.matches(rank) }
-                cardCounter.setExactly(gameInfo.myPlayerName, rank, numberInMyHand)
+                is HandOver -> add(playerName, move.askFor, result.cards.size)
             }
         }
 
-        private fun calculateProbabilities() {
-            for (rank in gameInfo.outstandingRanks) {
-                for ((playerName, handSize) in gameInfo.otherPlayers) {
-                    // the cards in this player's hand that could possibly be that rank cannot be more than the unknown
-                    // number of cards in their hand. It also cannot be more than the number of cards they've drawn since
-                    // they last didn't have them
-                    val unknownCardsInHand = handSize - cardCounter.knownHandSize(playerName)
-                    val cardsDrawnSinceNotHavingRank = gameInfo.cardsDrawnSinceNotHaving(playerName, rank)
-                    val possibleInstances = if (cardsDrawnSinceNotHavingRank == null) {
-                        unknownCardsInHand
-                    } else {
-                        minOf(unknownCardsInHand, cardsDrawnSinceNotHavingRank)
-                    }
-                    if (possibleInstances == 0) continue // avoid divide by zero
-                    val unknownInstances = Suit.ALL.size - cardCounter.knownInstancesOf(rank)
-                    val probability = unknownInstances.toDouble() / possibleInstances.toDouble()
-                    probabilities.addProbability(playerName, rank, probability)
+        private fun CardCounter.trackCompletedBooks() {
+            for (rank in gameInfo.completedBooks) {
+                for (player in gameInfo.playerNames) {
+                    setNone(player, rank)
                 }
             }
         }
 
-        private val GameInfo.otherPlayerNames get() = otherPlayers.map { it.playerName }
+        private fun CardCounter.trackMyHand() {
+            for (rank in Rank.ALL) {
+                val numberInMyHand = gameInfo.myHand.count { it.matches(rank) }
+                setExactly(gameInfo.myPlayerName, rank, numberInMyHand)
+            }
+        }
 
-        private val GameInfo.allPlayerNames get() = otherPlayerNames + myPlayerName
+        private fun ProbabilityTracker.calculateProbabilities() {
+            for (rank in gameInfo.outstandingRanks) {
+                // a card could exist in any deck position, plus in players' hands.
+                // for a hand, it could be in any of the cards they've drawn since they last said they didn't have
+                // it, or in any unknown cards in their hand if they haven't said yet
+                val allPossibleLocations = gameInfo.oceanSize + gameInfo.otherPlayers.sumBy { (name, handSize) ->
+                    possibleInstancesInHand(rank, name, handSize)
+                }
+                if (allPossibleLocations == 0) continue // avoid divide by zero, don't add any probability
 
-        private val GameInfo.outstandingRanks get() = Rank.ALL - myBooks - otherPlayers.flatMap { it.books }
+                for ((playerName, handSize) in gameInfo.otherPlayers) {
+                    // now we take the weighted probability: the number of unknown instances, multiplied by
+                    // the probability it is in this player's hand (possible locations in hand / all possible locations)
+
+                    val unknownInstances = POSSIBLE_SUITS - cardCounter.knownInstancesOf(rank)
+                    val possibleInstancesInHand = possibleInstancesInHand(rank, playerName, handSize)
+                    val probability = unknownInstances.toDouble() * possibleInstancesInHand.toDouble() / allPossibleLocations.toDouble()
+                    addProbability(playerName, rank, probability)
+                }
+            }
+        }
+
+        private fun possibleInstancesInHand(rank: Rank, playerName: PlayerName, handSize: Int): Int {
+            // if they have 3 in their hand, they definitely don't have a fourth, because they'd have a book
+            if (cardCounter.knownHandSize(playerName) == 3) return 0
+            return gameInfo.cardsDrawnSinceNotHaving(playerName, rank)
+                    ?: (handSize - cardCounter.knownHandSize(playerName))
+        }
+
+        private val GameInfo.completedBooks: Set<Rank> get() = players.flatMap { it.books }.toSet()
+
+        private val GameInfo.oceanSize: Int get() =
+            DECK_SIZE - (POSSIBLE_SUITS * completedBooks.size) - players.sumBy { it.handSize }
+
+        private val GameInfo.playerNames: List<PlayerName> get() = players.map { it.playerName }
+
+        private val GameInfo.otherPlayerNames: List<PlayerName> get() = playerNames - myPlayerName
+
+        private val GameInfo.otherPlayers: List<GameInfo.PlayerInfo> get() =
+            players.filter { it.playerName != myPlayerName }
+
+        private val GameInfo.outstandingRanks get() = Rank.ALL - completedBooks
 
         private val GameInfo.myRanks get() = myHand.map { it.rank }.distinct()
 
         private fun GameInfo.cardsDrawnSinceNotHaving(playerName: PlayerName, rank: Rank): Int? {
             var drawn = 0
-            for (pastMove in pastMoves) {
+            for (pastMove in pastMoves.reversed()) {
                 val (mover, move, result, turnEnded) = pastMove
                 when {
                     mover == playerName -> {
@@ -112,7 +144,7 @@ class CardCounterAi : MovePicker {
 
         val players: List<PlayerName>
 
-        private val numColumns get() = Rank.ALL.size
+        private val numColumns get() = POSSIBLE_RANKS
 
         fun getIndex(playerName: PlayerName, rank: Rank): Int =
                 players.indexOf(playerName) * numColumns + Rank.ALL.indexOf(rank)
@@ -123,12 +155,12 @@ class CardCounterAi : MovePicker {
 
     private class CardCounter(override val players: List<PlayerName>): ArrayHelper {
 
-        private val cardCounts = IntArray(players.size * Rank.ALL.size)
+        private val cardCountTable = IntArray(players.size * POSSIBLE_RANKS)
 
-        private fun get(playerName: PlayerName, rank: Rank): Int = cardCounts[getIndex(playerName, rank)]
+        private fun get(playerName: PlayerName, rank: Rank): Int = cardCountTable[getIndex(playerName, rank)]
 
         private fun set(playerName: PlayerName, rank: Rank, value: Int) {
-            cardCounts[getIndex(playerName, rank)] = value
+            cardCountTable[getIndex(playerName, rank)] = value
         }
 
         fun setNone(playerName: PlayerName, rank: Rank) = set(playerName, rank, 0)
@@ -146,37 +178,48 @@ class CardCounterAi : MovePicker {
 
         fun knownHandSize(playerName: PlayerName) = Rank.ALL.sumBy { get(playerName, it) }
 
-        fun generateBaseScores(): ProbabilityTracker = ProbabilityTracker(players, cardCounts)
+        fun generateBaseScores(): ProbabilityTracker = ProbabilityTracker(players, cardCountTable)
     }
 
     private class ProbabilityTracker(override val players: List<PlayerName>, cardCounts: IntArray): ArrayHelper {
 
         // convert integer number of cards to doubles for scoring
-        private val probabilities = DoubleArray(cardCounts.size) { i -> cardCounts[i].toDouble() }
+        private val probabilityTable = DoubleArray(cardCounts.size) { i -> cardCounts[i].toDouble() }
 
         fun addProbability(playerName: PlayerName, rank: Rank, probability: Double) {
-            probabilities[getIndex(playerName, rank)] += probability
+            probabilityTable[getIndex(playerName, rank)] += probability
         }
 
         fun getMaxProbability(rankOptions: List<Rank>, playerOptions: List<PlayerName>): Pair<PlayerName, Rank> =
                 playerOptions.cartesianProduct(rankOptions)
-                    .map { i -> i to probabilities[getIndex(i.first, i.second)] }
+                    .map { i -> i to probabilityTable[getIndex(i.first, i.second)] }
                     .maxBy { (_, p) -> p }!!.first
 
-        fun printTable() {
+        fun getProbability(playerName: PlayerName, rank: Rank): Double = probabilityTable[getIndex(playerName, rank)]
+
+        fun printTable(oustanding: List<Rank>) {
             print(StringBuilder().apply {
                 val maxNameLength = players.map { it.name.length }.max()!!
-                append("".padStart(maxNameLength))
-                append(" \t")
+                append("".padStart(maxNameLength)).append(" \t")
                 for (rank in Rank.ALL) {
                     append(rank.shortName().padStart(7))
+                }
+                appendln()
+                append("deck".padStart(maxNameLength)).append(":\t")
+                for (rank in Rank.ALL) {
+                    if (oustanding.contains(rank)) {
+                        val remaining = POSSIBLE_SUITS - players.sumByDouble { probabilityTable[getIndex(it, rank)] }
+                        append(String.format("%7.2f", remaining))
+                    } else {
+                        append("".padStart(7))
+                    }
                 }
                 appendln()
                 for (player in players) {
                     append(player.name.padStart(maxNameLength))
                     append(":\t")
                     for (rank in Rank.ALL) {
-                        append(String.format("%7.2f", probabilities[getIndex(player, rank)]))
+                        append(String.format("%7.2f", probabilityTable[getIndex(player, rank)]))
                     }
                     appendln()
                 }

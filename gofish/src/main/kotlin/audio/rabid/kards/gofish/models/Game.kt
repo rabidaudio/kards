@@ -24,16 +24,11 @@ data class Game(
 
     private val highestBookSize: Int get() = players.map { it.books.size }.max()!!
 
-    private val playerInfo: List<GameInfo.OtherPlayerInfo>
-        get() = players.filter { it.name != currentPlayerName }.map { it.info }
-
-    val gameInfo: GameInfo get() = GameInfo(
-            myPlayerName = currentPlayerName,
-            myHand = currentPlayer.hand.immutableCopy(),
-            myBooks = currentPlayer.books.map { it.rank }.toSet(),
-            deckSize = ocean.size,
+    fun getGameInfo(playerName: PlayerName): GameInfo = GameInfo(
+            myPlayerName = playerName,
+            myHand = getPlayer(playerName).hand.immutableCopy(),
             pastMoves = pastMoves,
-            otherPlayers = playerInfo
+            players = players.map { it.info }
     )
 
     val nextPlayerName: PlayerName get() = players[(players.indexOf(currentPlayer) + 1) % players.size].name

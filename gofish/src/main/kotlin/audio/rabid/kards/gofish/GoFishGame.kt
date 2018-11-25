@@ -35,7 +35,7 @@ internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val r
     }
 
     private fun step() {
-        val move = game.currentPlayer.movePicker.move(game.gameInfo)
+        val move = game.currentPlayer.movePicker.move(game.getGameInfo(game.currentPlayerName))
         val result = move.run()
         val nextPlayer = when (result) {
             GoFish -> {

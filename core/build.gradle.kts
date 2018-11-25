@@ -17,9 +17,10 @@ dependencies {
     testRuntimeOnly(kotlin("reflect"))
     testImplementation("com.winterbe:expekt:0.5.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.2.0")
+    testImplementation(project(":test-utils"))
 }
 
-val test by tasks.getting(Test::class) {
+tasks.withType<Test> {
     useJUnitPlatform {
         includeEngines("spek2")
     }

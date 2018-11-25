@@ -1,3 +1,3 @@
 rootProject.name = "Kards"
 
-include("core", "gofish")
+include("core", "gofish", "test-utils")

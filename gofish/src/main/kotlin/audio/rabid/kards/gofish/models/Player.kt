@@ -10,6 +10,6 @@ data class Player(
         val hand: Hand,
         val books: MutableSet<Book> = mutableSetOf()
 ) {
-    val info: GameInfo.OtherPlayerInfo get() =
-        GameInfo.OtherPlayerInfo(name, hand.size, books.map { it.rank }.toSet())
+    val info: GameInfo.PlayerInfo get() =
+        GameInfo.PlayerInfo(name, hand.size, books.map { it.rank }.toSet())
 }
