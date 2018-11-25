@@ -29,6 +29,7 @@ object CardCounterAi : MovePicker {
         private val probabilities = cardCounter.generateBaseScores().apply {
             // now fill in unknown cards with probabilities
             calculateProbabilities()
+            verifyProbabilities()
         }
 
         fun getProbability(playerName: PlayerName, rank: Rank): Double = probabilities.getProbability(playerName, rank)
@@ -39,7 +40,7 @@ object CardCounterAi : MovePicker {
         }
 
         fun debug() {
-            probabilities.printTable(gameInfo.outstandingRanks)
+            probabilities.printTable(gameInfo.outstandingRanks, this::probabilityInDeck)
         }
 
         private fun CardCounter.trackMove(pastMove: PastMove) {
@@ -95,11 +96,40 @@ object CardCounterAi : MovePicker {
             }
         }
 
+        private fun ProbabilityTracker.verifyProbabilities() {
+            // each rank column should sum to 4
+            for (rank in Rank.ALL) {
+                val prob = players.sumByDouble { getProbability(it, rank) } + probabilityInDeck(rank)
+                prob.assertWithin(POSSIBLE_SUITS.toDouble(), 0.01) {
+                    "rank probability for $rank didn't sum to 4"
+                }
+            }
+            for ((name, handSize) in gameInfo.players) {
+                val prob = Rank.ALL.sumByDouble { getProbability(name, it) }
+                prob.assertWithin(handSize.toDouble(), 0.01) {
+                    "hand probabilities for $name expected $handSize but was $prob"
+                }
+            }
+        }
+
+        private inline fun Double.assertWithin(target: Double, delta: Double, lazyMessage: () -> String) {
+            if (!(this >= (target - delta) && this <= (target + delta))) throw AssertionError(lazyMessage.invoke())
+        }
+
         private fun possibleInstancesInHand(rank: Rank, playerName: PlayerName, handSize: Int): Int {
             // if they have 3 in their hand, they definitely don't have a fourth, because they'd have a book
             if (cardCounter.knownHandSize(playerName) == 3) return 0
             return gameInfo.cardsDrawnSinceNotHaving(playerName, rank)
                     ?: (handSize - cardCounter.knownHandSize(playerName))
+        }
+
+        private fun probabilityInDeck(rank: Rank): Double {
+            val allPossibleLocations = gameInfo.oceanSize + gameInfo.otherPlayers.sumBy { (name, handSize) ->
+                possibleInstancesInHand(rank, name, handSize)
+            }
+            if (allPossibleLocations == 0) return 0.0
+            val unknownInstances = POSSIBLE_SUITS - cardCounter.knownInstancesOf(rank)
+            return unknownInstances.toDouble() * gameInfo.oceanSize.toDouble() / allPossibleLocations.toDouble()
         }
 
         private val GameInfo.completedBooks: Set<Rank> get() = players.flatMap { it.books }.toSet()
@@ -197,7 +227,7 @@ object CardCounterAi : MovePicker {
 
         fun getProbability(playerName: PlayerName, rank: Rank): Double = probabilityTable[getIndex(playerName, rank)]
 
-        fun printTable(oustanding: List<Rank>) {
+        fun printTable(oustanding: List<Rank>, probabilityInDeck: (Rank) -> Double) {
             print(StringBuilder().apply {
                 val maxNameLength = players.map { it.name.length }.max()!!
                 append("".padStart(maxNameLength)).append(" \t")
@@ -208,21 +238,36 @@ object CardCounterAi : MovePicker {
                 append("deck".padStart(maxNameLength)).append(":\t")
                 for (rank in Rank.ALL) {
                     if (oustanding.contains(rank)) {
-                        val remaining = POSSIBLE_SUITS - players.sumByDouble { probabilityTable[getIndex(it, rank)] }
-                        append(String.format("%7.2f", remaining))
+                        append(String.format("%7.2f", probabilityInDeck(rank)))
                     } else {
                         append("".padStart(7))
                     }
                 }
+                append(String.format("%7.2f", Rank.ALL.sumByDouble(probabilityInDeck)))
                 appendln()
                 for (player in players) {
                     append(player.name.padStart(maxNameLength))
                     append(":\t")
                     for (rank in Rank.ALL) {
-                        append(String.format("%7.2f", probabilityTable[getIndex(player, rank)]))
+                        if (oustanding.contains(rank)) {
+                            append(String.format("%7.2f", probabilityTable[getIndex(player, rank)]))
+                        } else {
+                            append("".padStart(7))
+                        }
                     }
+                    append(String.format("%7.2f", Rank.ALL.sumByDouble { probabilityTable[getIndex(player, it)] }))
                     appendln()
                 }
+                append("".padStart(maxNameLength)).append(" \t")
+                for (rank in Rank.ALL) {
+                    if (oustanding.contains(rank)) {
+                        val p = probabilityInDeck(rank) + players.sumByDouble { probabilityTable[getIndex(it, rank)] }
+                        append(String.format("%7.2f", p))
+                    } else {
+                        append("".padStart(7))
+                    }
+                }
+                appendln()
             }.toString())
         }
     }
