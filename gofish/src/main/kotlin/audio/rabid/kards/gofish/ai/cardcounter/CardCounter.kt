@@ -5,31 +5,56 @@ import audio.rabid.kards.gofish.models.PlayerName
 
 class CardCounter(players: List<PlayerName>) : ArrayHelper<PlayerName, Rank> {
 
+    companion object {
+        private val POSSIBLE_RANGE = 0..3
+    }
+
     override val rows: List<PlayerName> = players
     override val columns: List<Rank> get() = Rank.ALL
 
-    private val cardCountTable = IntArray(totalSize)
+    private val cardCountTable: Array<IntRange> = Array(totalSize) { POSSIBLE_RANGE }
 
-    private fun get(playerName: PlayerName, rank: Rank): Int = cardCountTable[getIndex(playerName, rank)]
+    private fun get(playerName: PlayerName, rank: Rank): IntRange = cardCountTable[getIndex(playerName, rank)]
 
-    private fun set(playerName: PlayerName, rank: Rank, value: Int) {
-        cardCountTable[getIndex(playerName, rank)] = value
+    private fun set(playerName: PlayerName, rank: Rank, range: IntRange) {
+        cardCountTable[getIndex(playerName, rank)] = range.clampTo(POSSIBLE_RANGE)
     }
 
-    fun setNone(playerName: PlayerName, rank: Rank) = set(playerName, rank, 0)
+    fun getMin(playerName: PlayerName, rank: Rank): Int = get(playerName, rank).first
 
-    fun setAtLeastOne(playerName: PlayerName, rank: Rank) {
-        if (get(playerName, rank) == 0) set(playerName, rank, 1)
-    }
+    fun getMax(playerName: PlayerName, rank: Rank): Int = get(playerName, rank).endInclusive
 
-    fun add(playerName: PlayerName, rank: Rank, count: Int) =
-        set(playerName, rank, get(playerName, rank) + count)
+    fun setMin(playerName: PlayerName, rank: Rank, min: Int) =
+        set(playerName, rank, min..getMax(playerName, rank))
 
-    fun setExactly(playerName: PlayerName, rank: Rank, count: Int) = set(playerName, rank, count)
+    fun setMax(playerName: PlayerName, rank: Rank, max: Int) =
+        set(playerName, rank, getMin(playerName, rank)..max)
 
-    fun knownInstancesOf(rank: Rank): Int = rows.sumBy { get(it, rank) }
-
-    fun knownHandSize(playerName: PlayerName) = columns.sumBy { get(playerName, it) }
-
-    fun generateBaseScores(): ProbabilityTracker = ProbabilityTracker(rows, cardCountTable) // TODO
+    private fun IntRange.clampTo(outerRange: IntRange): IntRange =
+        first.coerceAtLeast(outerRange.first)..endInclusive.coerceAtMost(outerRange.endInclusive)
 }
+
+fun CardCounter.setNone(playerName: PlayerName, rank: Rank) = setExactly(playerName, rank, 0)
+
+fun CardCounter.setAtLeastOne(playerName: PlayerName, rank: Rank) {
+    if (getMin(playerName, rank) == 0) setMin(playerName, rank, 1)
+}
+
+fun CardCounter.addExactly(playerName: PlayerName, rank: Rank, count: Int) {
+    setMin(playerName, rank, getMin(playerName, rank) + count)
+    setMax(playerName, rank, getMax(playerName, rank) + count)
+}
+
+fun CardCounter.setExactly(playerName: PlayerName, rank: Rank, count: Int) {
+    setMin(playerName, rank, count)
+    setMax(playerName, rank, count)
+}
+
+fun CardCounter.addPossiblyOneMore(playerName: PlayerName, rank: Rank) =
+    setMax(playerName, rank, getMax(playerName, rank) + 1)
+
+fun CardCounter.getMinMax(playerName: PlayerName, rank: Rank): Pair<Int, Int> =
+    getMin(playerName, rank) to getMax(playerName, rank)
+
+fun CardCounter.getDifferential(playerName: PlayerName, rank: Rank) =
+    getMax(playerName, rank) - getMin(playerName, rank)

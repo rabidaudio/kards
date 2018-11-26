@@ -11,7 +11,7 @@ import audio.rabid.kards.gofish.models.PlayerName
 
 object CardCounterAi : MovePicker {
 
-    override fun move(gameInfo: GameInfo): Move = Picker(gameInfo).also { it.verifyScores() }.getBestMove() // TODO
+    override fun move(gameInfo: GameInfo): Move = Picker(gameInfo).getBestMove()
 
     class Picker(private val gameInfo: GameInfo) {
 
@@ -19,7 +19,7 @@ object CardCounterAi : MovePicker {
             private val Ranks = Rank.ALL
         }
 
-        private val cardCounter = RangedCardCounter(gameInfo.playerNames).apply {
+        private val cardCounter = CardCounter(gameInfo.playerNames).apply {
             // for any initial books, remove those from the game
             for (rank in gameInfo.initialBooks.values.flatten()) trackBooked(rank)
             // track all moves so far, which should give the possible range of cards each player has
@@ -32,11 +32,38 @@ object CardCounterAi : MovePicker {
             return gameInfo.possibleMoves.maxBy { (r, p) -> getScore(p, r) }!!
         }
 
-        private fun RangedCardCounter.trackBooked(rank: Rank) {
+        fun getScore(playerName: PlayerName, rank: Rank): Double {
+            // the score is the known number of that card in that persons hand,
+            // plus the probability of the unknown cards being that rank, weighted by unknown hand size
+            val minNumber = cardCounter.getMin(playerName, rank).toDouble()
+            val probabilityDistribution = Ranks.sumByDouble { r -> getProbability(playerName, r) }
+            if (probabilityDistribution == 0.0) return minNumber
+            val unknownHandSize = gameInfo.getUnknownHandSize(playerName).toDouble()
+            return minNumber + (getProbability(playerName, rank) / probabilityDistribution * unknownHandSize)
+        }
+
+        private fun getProbability(playerName: PlayerName, rank: Rank): Double {
+            // the probability they have one of those cards is the probability that any unknown card is that card,
+            // weighted by the number of unknown cards in their hand
+            val possibleLocationsInGame = gameInfo.oceanSize +
+                    gameInfo.otherPlayerNames.sumBy { p -> cardCounter.getDifferential(p, rank) }
+            val possibleLocationsInHand = cardCounter.getDifferential(playerName, rank)
+            val knownInstancesInGame = gameInfo.playerNames.sumBy { p -> cardCounter.getMin(p, rank) }
+            val unknownInstancesInGame = 4 - knownInstancesInGame
+            return possibleLocationsInHand.toDouble() *
+                    unknownInstancesInGame.toDouble() / possibleLocationsInGame.toDouble()
+        }
+
+        fun debug() {
+            val playerScores = gameInfo.playerNames.associateWith { p -> Ranks.associateWith { r -> getScore(p, r) } }
+            ScorePrinter(gameInfo.outstandingRanks, playerScores).print()
+        }
+
+        private fun CardCounter.trackBooked(rank: Rank) {
             for (playerName in gameInfo.playerNames) setNone(playerName, rank)
         }
 
-        private fun RangedCardCounter.trackMove(pastMove: PastMove) {
+        private fun CardCounter.trackMove(pastMove: PastMove) {
             val (fromPlayer, move, result, turnEnded, newBook) = pastMove
             val (rank, toPlayer) = move
             // because they asked, we know they have at least one
@@ -62,69 +89,12 @@ object CardCounterAi : MovePicker {
             newBook?.let { trackBooked(it) }
         }
 
-        private fun RangedCardCounter.trackMyHand() {
+        private fun CardCounter.trackMyHand() {
             for (rank in Ranks) {
                 val numberInMyHand = gameInfo.myHand.count { it.matches(rank) }
                 setExactly(gameInfo.myPlayerName, rank, numberInMyHand)
             }
         }
-
-        private fun getProbability(playerName: PlayerName, rank: Rank): Double {
-            // the probability they have one of those cards is the probability that any unknown card is that card,
-            // weighted by the number of unknown cards in their hand
-            val possibleLocationsInGame = gameInfo.oceanSize +
-                    gameInfo.otherPlayerNames.sumBy { p -> cardCounter.getDifferential(p, rank) }
-            val possibleLocationsInHand = cardCounter.getDifferential(playerName, rank)
-            val knownInstancesInGame = gameInfo.playerNames.sumBy { p -> cardCounter.getMin(p, rank) }
-            val unknownInstancesInGame = 4 - knownInstancesInGame
-            return possibleLocationsInHand.toDouble() *
-                    unknownInstancesInGame.toDouble() / possibleLocationsInGame.toDouble()
-        }
-
-        fun getScore(playerName: PlayerName, rank: Rank): Double {
-            // the score is the known number of that card in that persons hand,
-            // plus the probability of the unknown cards being that rank, weighted by unknown hand size
-            val minNumber = cardCounter.getMin(playerName, rank).toDouble()
-            val probabilityDistribution = Ranks.sumByDouble { r -> getProbability(playerName, r) }
-            if (probabilityDistribution == 0.0) return minNumber
-            val unknownHandSize = gameInfo.getUnknownHandSize(playerName).toDouble()
-            return minNumber + (getProbability(playerName, rank) / probabilityDistribution * unknownHandSize)
-        }
-
-        fun debug() {
-            val playerScores = gameInfo.playerNames.associateWith { p -> Ranks.associateWith { r -> getScore(p, r) } }
-            val oceanScores = Ranks.associateWith { probabilityInOcean(it) }
-            ScorePrinter(gameInfo.outstandingRanks, playerScores, oceanScores).print()
-        }
-
-        private fun probabilityInOcean(rank: Rank): Double {
-            val possibleLocationsInGame = gameInfo.oceanSize +
-                    gameInfo.otherPlayers.sumBy { p -> p.unknownHandSize }
-//                    gameInfo.otherPlayerNames.sumBy { p -> cardCounter.getDifferential(p, rank) }
-            val knownInstancesInGame = gameInfo.playerNames.sumBy { p -> cardCounter.getMin(p, rank) }
-            val unknownInstancesInGame = 4 - knownInstancesInGame
-            return gameInfo.oceanSize.toDouble() *
-                    unknownInstancesInGame.toDouble() / possibleLocationsInGame.toDouble()
-        }
-
-        // TODO when we remove this method we can remove some duplication
-        fun verifyScores() {
-//            for (rank in gameInfo.outstandingRanks) {
-//                val prob = gameInfo.playerNames.sumByDouble { getScore(it, rank) } + probabilityInOcean(rank)
-//                prob.assertWithin(4.toDouble(), 0.01) {
-//                    "rank probability for $rank didn't sum to 4"
-//                }
-//            }
-            for ((name, handSize) in gameInfo.players) {
-                val prob = Ranks.sumByDouble { getScore(name, it) }
-                prob.assertWithin(handSize.toDouble(), 0.01) {
-                    "hand probabilities for $name expected $handSize but was $prob"
-                }
-            }
-        }
-
-//        private fun GameInfo.getHandSize(playerName: PlayerName) =
-//            players.first { it.playerName == playerName }.handSize
 
         private fun GameInfo.getUnknownHandSize(playerName: PlayerName) =
             players.first { it.playerName == playerName }.unknownHandSize
@@ -134,8 +104,4 @@ object CardCounterAi : MovePicker {
 
         private val GameInfo.outstandingRanks get() = Ranks - completedBooks
     }
-}
-
-private inline fun Double.assertWithin(target: Double, delta: Double, lazyMessage: () -> String) {
-    if (!(this >= (target - delta) && this <= (target + delta))) throw AssertionError(lazyMessage.invoke())
 }
