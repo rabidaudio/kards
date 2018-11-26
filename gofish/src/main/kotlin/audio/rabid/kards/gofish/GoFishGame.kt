@@ -1,12 +1,23 @@
 package audio.rabid.kards.gofish
 
-import audio.rabid.kards.core.deck.standard.*
+import audio.rabid.kards.core.deck.standard.CardSet
+import audio.rabid.kards.core.deck.standard.Decks
+import audio.rabid.kards.core.deck.standard.Hand
+import audio.rabid.kards.core.deck.standard.Rank
+import audio.rabid.kards.core.deck.standard.drawOne
+import audio.rabid.kards.core.deck.standard.handOf
+import audio.rabid.kards.core.deck.standard.placeOnBottom
 import audio.rabid.kards.gofish.ai.MovePicker
-import audio.rabid.kards.gofish.models.*
+import audio.rabid.kards.gofish.models.Book
+import audio.rabid.kards.gofish.models.Game
 import audio.rabid.kards.gofish.models.GoFish
+import audio.rabid.kards.gofish.models.HandOver
+import audio.rabid.kards.gofish.models.Move
+import audio.rabid.kards.gofish.models.MoveResult
+import audio.rabid.kards.gofish.models.PastMove
+import audio.rabid.kards.gofish.models.Player
+import audio.rabid.kards.gofish.models.PlayerName
 import audio.rabid.kards.gofish.ui.UI
-import java.lang.IllegalArgumentException
-import java.lang.IllegalStateException
 import kotlin.random.Random
 
 internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val random: Random) {
@@ -49,7 +60,7 @@ internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val r
                 }
             }
             is HandOver -> {
-                game.currentPlayer.hand.placeOnBottom(CardSet(result.cards))
+                game.currentPlayer.hand.placeOnBottom(CardSet.create(result.cards))
                 // they got a match, so they go again
                 false
             }
@@ -88,8 +99,8 @@ internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val r
 
     private fun Player.hasCardsOfRank(rank: Rank): Boolean = hand.any { it.rank == rank }
 
-    private val Move.isLegal: Boolean get() =
-        game.currentPlayer.hand.any { it.rank == askFor }
-                && game.players.any { it.name == from }
-                && game.currentPlayerName != from
+    private val Move.isLegal: Boolean
+        get() = game.currentPlayer.hand.any { it.rank == askFor } &&
+                game.players.any { it.name == from } &&
+                game.currentPlayerName != from
 }

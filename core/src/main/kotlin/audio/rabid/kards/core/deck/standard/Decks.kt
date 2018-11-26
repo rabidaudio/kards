@@ -4,5 +4,5 @@ import audio.rabid.kards.core.deck.utils.cartesianProduct
 
 object Decks {
 
-    fun standard() = Deck(Suit.ALL.cartesianProduct(Rank.ALL).map { (suit, rank) -> Card(suit, rank) })
+    fun standard() = Deck.create(Suit.ALL.cartesianProduct(Rank.ALL).map { (suit, rank) -> Card(suit, rank) })
 }

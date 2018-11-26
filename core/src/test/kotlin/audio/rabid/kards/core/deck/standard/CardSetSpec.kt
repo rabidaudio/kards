@@ -1,7 +1,13 @@
 package audio.rabid.kards.core.deck.standard
 
-import audio.rabid.kards.core.deck.standard.Rank.*
-import audio.rabid.kards.core.deck.standard.Suit.*
+import audio.rabid.kards.core.deck.standard.Rank.Ace
+import audio.rabid.kards.core.deck.standard.Rank.Queen
+import audio.rabid.kards.core.deck.standard.Rank.Three
+import audio.rabid.kards.core.deck.standard.Rank.Two
+import audio.rabid.kards.core.deck.standard.Suit.Clubs
+import audio.rabid.kards.core.deck.standard.Suit.Diamonds
+import audio.rabid.kards.core.deck.standard.Suit.Hearts
+import audio.rabid.kards.core.deck.standard.Suit.Spades
 import audio.rabid.kards.core.utils.expectBlock
 import com.winterbe.expekt.expect
 import org.spekframework.spek2.Spek
@@ -9,15 +15,15 @@ import org.spekframework.spek2.style.specification.describe
 import kotlin.random.Random
 
 
-object CardSetSpec: Spek({
+object CardSetSpec : Spek({
 
     describe("CardSet") {
 
         val set by memoized {
             cardSetOf(
-                    Ace of Clubs,
-                    Two of Hearts,
-                    Three of Spades
+                Ace of Clubs,
+                Two of Hearts,
+                Three of Spades
             )
         }
 
@@ -40,8 +46,8 @@ object CardSetSpec: Spek({
             it("should not hold duplicates of the same card") {
                 expectBlock {
                     cardSetOf(
-                            Queen of Spades,
-                            Queen of Spades
+                        Queen of Spades,
+                        Queen of Spades
                     )
                 }.to.`throw`<DuplicateCardException> {
                     expect(it.card).to.equal(Queen of Spades)
@@ -195,10 +201,12 @@ object CardSetSpec: Spek({
 
                 it("should allow drawing all cards that match the block") {
                     val reds = set.drawAllWhere { it.suit.isBlack }
-                    expect(reds).to.equal(cardSetOf(
+                    expect(reds).to.equal(
+                        cardSetOf(
                             Ace of Clubs,
                             Three of Spades
-                    ))
+                        )
+                    )
                     expect(set).to.have.size(1)
                 }
 
@@ -268,32 +276,38 @@ object CardSetSpec: Spek({
 
                 it("should allow placing cards at arbitrary positions") {
                     set.insertAtPosition(2, Queen of Spades)
-                    expect(set).to.equal(cardSetOf(
-                            Two of Hearts,
+                    expect(set).to.equal(
+                        cardSetOf(
                             Ace of Clubs,
+                            Two of Hearts,
                             Queen of Spades,
                             Three of Spades
-                    ))
+                        )
+                    )
                 }
 
                 it("should allow placing cards at the beginning") {
                     set.insertAtPosition(0, Queen of Spades)
-                    expect(set).to.equal(cardSetOf(
+                    expect(set).to.equal(
+                        cardSetOf(
                             Queen of Spades,
-                            Two of Hearts,
                             Ace of Clubs,
+                            Two of Hearts,
                             Three of Spades
-                    ))
+                        )
+                    )
                 }
 
                 it("should allow placing cards at the end") {
                     set.insertAtPosition(3, Queen of Spades)
-                    expect(set).to.equal(cardSetOf(
-                            Two of Hearts,
+                    expect(set).to.equal(
+                        cardSetOf(
                             Ace of Clubs,
+                            Two of Hearts,
                             Three of Spades,
                             Queen of Spades
-                    ))
+                        )
+                    )
                 }
 
                 it("should error if adding duplicate cards") {
@@ -325,11 +339,13 @@ object CardSetSpec: Spek({
 
             it("should shuffle the set in place") {
                 set.shuffle(random)
-                expect(set).to.equal(cardSetOf(
+                expect(set).to.equal(
+                    cardSetOf(
                         Two of Hearts,
-                        Ace of Clubs,
-                        Three of Spades
-                ))
+                        Three of Spades,
+                        Ace of Clubs
+                    )
+                )
                 expect(set.containsAll(listOf(Ace of Clubs, Two of Hearts, Three of Spades)))
             }
 

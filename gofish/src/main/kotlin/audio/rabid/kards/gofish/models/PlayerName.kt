@@ -1,3 +1,3 @@
 package audio.rabid.kards.gofish.models
 
-inline class PlayerName(val name: String)
+/*inline*/ data class PlayerName(val name: String)

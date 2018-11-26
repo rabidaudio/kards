@@ -5,11 +5,12 @@ import audio.rabid.kards.gofish.ai.GameInfo
 import audio.rabid.kards.gofish.ai.MovePicker
 
 data class Player(
-        val name: PlayerName,
-        val movePicker: MovePicker,
-        val hand: Hand,
-        val books: MutableSet<Book> = mutableSetOf()
+    val name: PlayerName,
+    val movePicker: MovePicker,
+    val hand: Hand,
+    val books: MutableSet<Book> = mutableSetOf()
 ) {
-    val info: GameInfo.PlayerInfo get() =
-        GameInfo.PlayerInfo(name, hand.size, books.map { it.rank }.toSet())
+    val info: GameInfo.PlayerInfo
+        get() =
+            GameInfo.PlayerInfo(name, hand.size, books.map { it.rank }.toSet())
 }

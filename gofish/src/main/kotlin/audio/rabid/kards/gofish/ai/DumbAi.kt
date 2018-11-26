@@ -9,8 +9,8 @@ import kotlin.random.Random
 class DumbAi(private val random: Random) : MovePicker {
 
     override fun move(gameInfo: GameInfo): Move = Move(
-            askFor = gameInfo.myHand.random(random).rank,
-            from =  gameInfo.otherPlayers.random(random)
+        askFor = gameInfo.myHand.random(random).rank,
+        from = gameInfo.otherPlayers.random(random)
     )
 
     private val GameInfo.otherPlayers get() = players.map { it.playerName } - myPlayerName

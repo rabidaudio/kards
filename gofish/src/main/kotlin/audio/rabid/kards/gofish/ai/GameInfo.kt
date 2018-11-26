@@ -8,10 +8,10 @@ import audio.rabid.kards.gofish.models.PlayerName
 typealias ReadOnlyHand = Set<Card>
 
 data class GameInfo(
-        val myPlayerName: PlayerName,
-        val myHand: ReadOnlyHand,
-        val players: List<PlayerInfo>,
-        val pastMoves: List<PastMove>
+    val myPlayerName: PlayerName,
+    val myHand: ReadOnlyHand,
+    val players: List<PlayerInfo>,
+    val pastMoves: List<PastMove>
 ) {
 
     data class PlayerInfo(val playerName: PlayerName, val handSize: Int, val books: Set<Rank>)

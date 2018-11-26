@@ -10,9 +10,9 @@ class Book(private val cardSet: CardSet) {
     companion object {
 
         fun isValid(cards: Set<Card>): Boolean {
-            return !cards.isEmpty()
-                    && cards.all { it.matches(cards.first().rank) }
-                    && Suit.ALL.all { suit -> cards.any { it.matches(suit) } }
+            return !cards.isEmpty() &&
+                    cards.all { it.matches(cards.first().rank) } &&
+                    Suit.ALL.all { suit -> cards.any { it.matches(suit) } }
         }
     }
 

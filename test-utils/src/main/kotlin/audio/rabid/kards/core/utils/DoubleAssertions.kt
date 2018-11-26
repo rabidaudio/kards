@@ -7,4 +7,5 @@ class ExpectWithinDouble(private val expectDouble: ExpectDouble, private val del
     fun of(actual: Double) = expectDouble.closeTo(actual, delta)
 }
 
-fun ExpectDouble.within(decimalPlaces: Int): ExpectWithinDouble = ExpectWithinDouble(this, Math.pow(10.0, -1.0 * decimalPlaces))
+fun ExpectDouble.within(decimalPlaces: Int): ExpectWithinDouble =
+    ExpectWithinDouble(this, Math.pow(10.0, -1.0 * decimalPlaces))

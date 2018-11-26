@@ -2,12 +2,15 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
+    id("io.gitlab.arturbosch.detekt")
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
 
-    testImplementation("org.spekframework.spek2:spek-dsl-jvm:2.0.0-alpha.1")  {
+    detektPlugins("io.gitlab.arturbosch.detekt:detekt-formatting:1.0.0-RC11")
+
+    testImplementation("org.spekframework.spek2:spek-dsl-jvm:2.0.0-alpha.1") {
         exclude(group = "org.jetbrains.kotlin")
     }
     testRuntimeOnly("org.spekframework.spek2:spek-runner-junit5:2.0.0-alpha.1") {
@@ -18,6 +21,11 @@ dependencies {
     testImplementation("com.winterbe:expekt:0.5.0")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.2.0")
     testImplementation(project(":test-utils"))
+}
+
+detekt {
+    config = files("$rootDir/default-detekt-config.yml")
+    filters = ".*build.*,.*/resources/.*,.*/tmp/.*"
 }
 
 tasks.withType<Test> {
