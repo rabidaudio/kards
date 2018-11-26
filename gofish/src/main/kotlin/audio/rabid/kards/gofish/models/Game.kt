@@ -1,13 +1,12 @@
 package audio.rabid.kards.gofish.models
 
 import audio.rabid.kards.core.deck.standard.Rank
-import audio.rabid.kards.gofish.ai.GameInfo
+import audio.rabid.kards.gofish.ai.TurnInfo
 
 data class Game(
     val ocean: Ocean,
     val players: List<Player>,
-    var currentPlayerName: PlayerName = players.first().name,
-    val pastMoves: MutableList<PastMove> = mutableListOf()
+    var currentPlayerName: PlayerName = players.first().name
 ) {
 
     init {
@@ -25,20 +24,16 @@ data class Game(
 
     private val highestBookSize: Int get() = players.map { it.books.size }.max()!!
 
-    fun getGameInfo(playerName: PlayerName): GameInfo = GameInfo(
-        myPlayerName = playerName,
+    val scores: Map<PlayerName, Set<Rank>>
+        get() = players.associate { p -> p.name to p.books.map(Book::rank).toSet() }
+
+    fun getTurnInfo(playerName: PlayerName): TurnInfo = TurnInfo(
         myHand = getPlayer(playerName).hand.immutableCopy(),
-        pastMoves = pastMoves,
-        initialBooks = initialBooks,
-        players = players.map { it.info }
+        oceanSize = ocean.size,
+        otherPlayerHandSizes = players.filter { it.name != playerName }.associate { it.name to it.hand.size }
     )
 
+    val playerNames: List<PlayerName> = players.map(Player::name)
+
     val nextPlayerName: PlayerName get() = players[(players.indexOf(currentPlayer) + 1) % players.size].name
-
-    private val allBooks: List<Pair<PlayerName, Book>> = players.flatMap { p -> p.books.map { p.name to it } }
-
-    private val initialBooks: Map<PlayerName, Set<Rank>> = allBooks
-        .filter { (_, b) -> !pastMoves.any { b.rank == it.newBook } }
-        .groupBy { (n, _) -> n }
-        .mapValues { (_, p) -> p.map { (_, b) -> b.rank }.toSet() }
 }

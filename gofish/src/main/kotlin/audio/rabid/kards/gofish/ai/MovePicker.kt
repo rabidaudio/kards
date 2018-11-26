@@ -1,8 +1,15 @@
 package audio.rabid.kards.gofish.ai
 
+import audio.rabid.kards.core.deck.standard.Rank
 import audio.rabid.kards.gofish.models.Move
+import audio.rabid.kards.gofish.models.PlayerName
+import audio.rabid.kards.gofish.models.TurnResult
 
 interface MovePicker {
 
-    fun move(gameInfo: GameInfo): Move
+    fun gameStarted(playerNames: List<PlayerName>, myPlayerName: PlayerName, bookedAtStart: Map<PlayerName, Set<Rank>>)
+
+    fun afterTurn(turnResult: TurnResult)
+
+    fun move(turnInfo: TurnInfo): Move
 }

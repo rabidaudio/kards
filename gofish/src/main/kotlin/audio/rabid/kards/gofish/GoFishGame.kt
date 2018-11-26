@@ -1,9 +1,10 @@
 package audio.rabid.kards.gofish
 
+import audio.rabid.kards.core.deck.standard.Card
 import audio.rabid.kards.core.deck.standard.CardSet
 import audio.rabid.kards.core.deck.standard.Decks
-import audio.rabid.kards.core.deck.standard.Hand
 import audio.rabid.kards.core.deck.standard.Rank
+import audio.rabid.kards.core.deck.standard.Suit
 import audio.rabid.kards.core.deck.standard.drawOne
 import audio.rabid.kards.core.deck.standard.handOf
 import audio.rabid.kards.core.deck.standard.placeOnBottom
@@ -14,9 +15,9 @@ import audio.rabid.kards.gofish.models.GoFish
 import audio.rabid.kards.gofish.models.HandOver
 import audio.rabid.kards.gofish.models.Move
 import audio.rabid.kards.gofish.models.MoveResult
-import audio.rabid.kards.gofish.models.PastMove
 import audio.rabid.kards.gofish.models.Player
 import audio.rabid.kards.gofish.models.PlayerName
+import audio.rabid.kards.gofish.models.TurnResult
 import audio.rabid.kards.gofish.ui.UI
 import kotlin.random.Random
 
@@ -32,32 +33,34 @@ internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val r
                 player.hand.placeOnBottom(deck.drawOne() ?: throw IllegalArgumentException("Too many players!"))
             }
         }
+        // sort each player's hand so it's easier to see
+        for (player in players) player.hand.sort()
         Game(deck, players)
     }
 
     fun play(ui: UI? = null): Set<PlayerName> {
-        bookAll()
-        ui?.draw(game)
+        val initialBooks = bookAll()
+        ui?.onGameStarted(game.playerNames, initialBooks)
+        for (player in game.players) player.movePicker.gameStarted(game.playerNames, player.name, initialBooks)
         while (!game.isOver) {
-            step()
-            ui?.draw(game)
+            val turnResult = step()
+            ui?.onTurnCompleted(turnResult, game.scores)
+            game.debug()
+            for (player in game.players) player.movePicker.afterTurn(turnResult)
         }
+        ui?.onGameEnded(game.winners, game.scores)
         return game.winners
     }
 
-    private fun step() {
-        val move = game.currentPlayer.movePicker.move(game.getGameInfo(game.currentPlayerName))
+    private fun step(): TurnResult {
+        val move = game.currentPlayer.movePicker.move(game.getTurnInfo(game.currentPlayerName))
         val result = move.run()
         val nextPlayer = when (result) {
             GoFish -> {
                 val drawn = game.ocean.drawOne()
-                if (drawn != null) {
-                    game.currentPlayer.hand.placeOnBottom(drawn)
-                    // if they drew what they asked for they go again
-                    drawn.rank != move.askFor
-                } else {
-                    true
-                }
+                if (drawn != null) game.currentPlayer.hand.placeOnBottom(drawn)
+                // if they drew what they asked for they go again
+                drawn?.rank != move.askFor
             }
             is HandOver -> {
                 game.currentPlayer.hand.placeOnBottom(CardSet.create(result.cards))
@@ -65,27 +68,27 @@ internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val r
                 false
             }
         }
-        // have players book cards from hand
-        val book = game.currentPlayer.hand.books().singleOrNull()
-        if (book != null) game.currentPlayer.books.add(book)
-
+        // have the player book cards from hand
+        val book = game.currentPlayer.book(move.askFor)
         // sort each player's hand so it's easier to see
         game.currentPlayer.hand.sort()
-        game.pastMoves.add(PastMove(game.currentPlayerName, move, result, nextPlayer, book?.rank))
+        val turnResult = TurnResult(game.currentPlayerName, move, result, nextPlayer, book?.rank)
         if (nextPlayer) game.currentPlayerName = game.nextPlayerName
+        return turnResult
     }
 
-    private fun bookAll() {
-        game.players.forEach { player ->
-            val b = player.hand.books()
-            player.books.addAll(b)
-            // sort each player's hand so it's easier to see
-            player.hand.sort()
+    private fun bookAll(): Map<PlayerName, Set<Rank>> {
+        return game.players.associate { player ->
+            player.name to Rank.ALL.mapNotNull { player.book(it) }.map { it.rank }.toSet()
         }
     }
 
-    private fun Hand.books(): List<Book> = groupBy { it.rank }.mapNotNull { (rank, cards) ->
-        return@mapNotNull if (Book.isValid(cards.toSet())) Book(drawAllWhere { it.rank == rank }) else null
+    private fun Player.book(rank: Rank): Book? {
+        val booked = Suit.ALL.all { suit -> hand.contains(Card(suit, rank)) }
+        if (!booked) return null
+        val book = Book(hand.drawAllWhere { it.rank == rank })
+        books.add(book)
+        return book
     }
 
     private fun Move.run(): MoveResult {

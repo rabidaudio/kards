@@ -1,6 +1,9 @@
 package audio.rabid.kards.gofish.ai
 
+import audio.rabid.kards.core.deck.standard.Rank
 import audio.rabid.kards.gofish.models.Move
+import audio.rabid.kards.gofish.models.PlayerName
+import audio.rabid.kards.gofish.models.TurnResult
 import kotlin.random.Random
 
 /**
@@ -8,5 +11,13 @@ import kotlin.random.Random
  */
 class DumbAi(private val random: Random) : MovePicker {
 
-    override fun move(gameInfo: GameInfo): Move = gameInfo.possibleMoves.random(random)
+    override fun gameStarted(
+        playerNames: List<PlayerName>,
+        myPlayerName: PlayerName,
+        bookedAtStart: Map<PlayerName, Set<Rank>>
+    ) {}
+
+    override fun afterTurn(turnResult: TurnResult) {}
+
+    override fun move(turnInfo: TurnInfo): Move = turnInfo.possibleMoves.random(random)
 }
