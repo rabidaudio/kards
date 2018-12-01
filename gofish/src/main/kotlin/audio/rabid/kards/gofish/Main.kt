@@ -9,8 +9,21 @@ import audio.rabid.kards.gofish.ui.DebuggingUI
 import kotlin.random.Random
 
 fun main(args: Array<String>) {
-//    AiTester(CardCounterAi).run()
+    test()
+}
 
+fun test() {
+    val players = listOf(PlayerName("1"), PlayerName("2"), PlayerName("3"))
+    AiTester(10_000, players) { name, random ->
+        CardCounterAi
+//        when (name) {
+//            PlayerName("1") -> CardCounterAi
+//            else -> DumbAi(random)
+//        }
+    }.run()
+}
+
+fun play() {
     val random = Random(0)
 
     val game = GoFishGame(
