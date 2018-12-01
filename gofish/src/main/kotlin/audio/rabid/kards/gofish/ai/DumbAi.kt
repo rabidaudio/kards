@@ -1,5 +1,6 @@
 package audio.rabid.kards.gofish.ai
 
+import audio.rabid.kards.core.deck.standard.Card
 import audio.rabid.kards.core.deck.standard.Rank
 import audio.rabid.kards.gofish.models.Move
 import audio.rabid.kards.gofish.models.PlayerName
@@ -14,6 +15,7 @@ class DumbAi(private val random: Random) : MovePicker {
     override fun gameStarted(
         playerNames: List<PlayerName>,
         myPlayerName: PlayerName,
+        myHand: Set<Card>,
         bookedAtStart: Map<PlayerName, Set<Rank>>
     ) {}
 

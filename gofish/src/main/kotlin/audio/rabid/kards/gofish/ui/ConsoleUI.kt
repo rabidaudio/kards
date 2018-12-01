@@ -2,7 +2,6 @@ package audio.rabid.kards.gofish.ui
 
 import audio.rabid.kards.core.deck.standard.Rank
 import audio.rabid.kards.core.deck.standard.ui.pluralize
-import audio.rabid.kards.gofish.models.Game
 import audio.rabid.kards.gofish.models.GoFish
 import audio.rabid.kards.gofish.models.HandOver
 import audio.rabid.kards.gofish.models.PlayerName

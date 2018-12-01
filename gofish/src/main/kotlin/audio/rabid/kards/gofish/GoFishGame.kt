@@ -11,6 +11,7 @@ import audio.rabid.kards.core.deck.standard.placeOnBottom
 import audio.rabid.kards.gofish.ai.MovePicker
 import audio.rabid.kards.gofish.models.Book
 import audio.rabid.kards.gofish.models.Game
+import audio.rabid.kards.gofish.models.GameOptions
 import audio.rabid.kards.gofish.models.GoFish
 import audio.rabid.kards.gofish.models.HandOver
 import audio.rabid.kards.gofish.models.Move
@@ -21,14 +22,18 @@ import audio.rabid.kards.gofish.models.TurnResult
 import audio.rabid.kards.gofish.ui.UI
 import kotlin.random.Random
 
-internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val random: Random) {
+internal class GoFishGame(
+    playerInfo: Map<PlayerName, MovePicker>,
+    val gameOptions: GameOptions,
+    private val random: Random
+) {
 
     private val game: Game = run {
         // start with a 52 card deck and shuffle it
         val deck = Decks.standard().apply { shuffle(random) }
         // for each player, draw 7 cards into their hand
         val players = playerInfo.map { (name, picker) -> Player(name, picker, handOf()) }
-        for (i in (1..7)) {
+        for (i in (1..gameOptions.startingHandSize)) {
             for (player in players) {
                 player.hand.placeOnBottom(deck.drawOne() ?: throw IllegalArgumentException("Too many players!"))
             }
@@ -41,11 +46,13 @@ internal class GoFishGame(playerInfo: Map<PlayerName, MovePicker>, private val r
     fun play(ui: UI? = null): Set<PlayerName> {
         val initialBooks = bookAll()
         ui?.onGameStarted(game.playerNames, initialBooks)
-        for (player in game.players) player.movePicker.gameStarted(game.playerNames, player.name, initialBooks)
+        for (player in game.players) {
+            player.movePicker.gameStarted(game.playerNames, player.name, player.hand.immutableCopy(), initialBooks)
+        }
         while (!game.isOver) {
             val turnResult = step()
             ui?.onTurnCompleted(turnResult, game.scores)
-            game.debug()
+            if (gameOptions.debug) game.debug()
             for (player in game.players) player.movePicker.afterTurn(turnResult)
         }
         ui?.onGameEnded(game.winners, game.scores)

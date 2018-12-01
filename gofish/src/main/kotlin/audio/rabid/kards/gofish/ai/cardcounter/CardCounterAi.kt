@@ -10,7 +10,7 @@ import audio.rabid.kards.gofish.models.Move
 import audio.rabid.kards.gofish.models.PlayerName
 import audio.rabid.kards.gofish.models.TurnResult
 
-class CardCounterAi : MovePicker {
+abstract class CardCounterAi : MovePicker {
 
     companion object {
         private val Ranks = Rank.ALL
@@ -29,10 +29,12 @@ class CardCounterAi : MovePicker {
     override fun gameStarted(
         playerNames: List<PlayerName>,
         myPlayerName: PlayerName,
+        myHand: Set<Card>,
         bookedAtStart: Map<PlayerName, Set<Rank>>
     ) {
         this.playerNames = playerNames
         this.myPlayerName = myPlayerName
+        this.myHand = myHand
         cardCounter = CardCounter(playerNames).apply {
             // for any initial books, remove those from the game
             for (rank in bookedAtStart.values.flatten()) trackBooked(rank)
@@ -47,8 +49,10 @@ class CardCounterAi : MovePicker {
     override fun move(turnInfo: TurnInfo): Move {
         myHand = turnInfo.myHand
         val scorer = Scorer(turnInfo)
-        return turnInfo.possibleMoves.maxBy { (r, p) -> scorer.getScore(p, r) }!!
+        return pickMove(turnInfo, scorer)
     }
+
+    abstract fun pickMove(turnInfo: TurnInfo, scorer: Scorer): Move
 
     private fun CardCounter.trackBooked(rank: Rank) {
         completedBooks.add(rank)
@@ -89,7 +93,9 @@ class CardCounterAi : MovePicker {
     }
 
     fun debug(turnInfo: TurnInfo) {
-        val playerScores = playerNames.associateWith { p -> Ranks.associateWith { r -> Scorer(turnInfo).getScore(p, r) } }
+        val playerScores = playerNames.associateWith { p ->
+            Ranks.associateWith { r -> Scorer(turnInfo).getScore(p, r) }
+        }
         ScorePrinter(outstandingRanks, playerScores).print()
     }
 
