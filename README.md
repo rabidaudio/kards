@@ -1,7 +1,7 @@
 ## TODO
 
 - Go Fish
-  - [ ] Refactor AI for performance and clarity
+  - [X] Refactor AI for performance and clarity
   - [ ] Be smarter about selecting moves - don't just pick the highest scoring move,
     be selective about what you reveal to other players
   - [ ] add interface to allow real players to play

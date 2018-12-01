@@ -18,8 +18,6 @@ abstract class CardCounterAi : MovePicker {
 
     private lateinit var playerNames: List<PlayerName>
     private lateinit var myPlayerName: PlayerName
-    private lateinit var myHand: Set<Card>
-
     private lateinit var cardCounter: CardCounter
 
     private val completedBooks = mutableSetOf<Rank>()
@@ -34,20 +32,19 @@ abstract class CardCounterAi : MovePicker {
     ) {
         this.playerNames = playerNames
         this.myPlayerName = myPlayerName
-        this.myHand = myHand
         cardCounter = CardCounter(playerNames).apply {
             // for any initial books, remove those from the game
             for (rank in bookedAtStart.values.flatten()) trackBooked(rank)
         }
     }
 
-    override fun afterTurn(turnResult: TurnResult) {
+    override fun afterTurn(turnResult: TurnResult, myHand: Set<Card>) {
         cardCounter.trackMove(turnResult)
         cardCounter.trackMyHand(myHand)
     }
 
     override fun move(turnInfo: TurnInfo): Move {
-        myHand = turnInfo.myHand
+        cardCounter.trackMyHand(turnInfo.myHand)
         val scorer = Scorer(turnInfo)
         return pickMove(turnInfo, scorer)
     }

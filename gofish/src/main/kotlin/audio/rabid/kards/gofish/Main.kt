@@ -8,7 +8,8 @@ import audio.rabid.kards.gofish.ui.ConsoleUI
 import kotlin.random.Random
 
 fun main(args: Array<String>) {
-    test()
+//    test()
+    play()
 }
 
 fun test() {
@@ -30,9 +31,9 @@ fun play() {
 
     val game = GoFishGame(
         playerInfo = mapOf(
-            PlayerName("smartypants") to SimpleCardCounterAI(),
-            PlayerName("dummy1") to DumbAi(random),
-            PlayerName("dummy2") to DumbAi(random)
+            PlayerName("A") to SimpleCardCounterAI(),
+            PlayerName("B") to SimpleCardCounterAI(), //DumbAi(random),
+            PlayerName("C") to SimpleCardCounterAI()  //DumbAi(random)
         ),
         gameOptions = GameOptions(debug = true),
         random = random

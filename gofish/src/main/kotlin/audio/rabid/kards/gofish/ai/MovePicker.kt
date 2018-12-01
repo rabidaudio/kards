@@ -15,7 +15,7 @@ interface MovePicker {
         bookedAtStart: Map<PlayerName, Set<Rank>>
     )
 
-    fun afterTurn(turnResult: TurnResult)
+    fun afterTurn(turnResult: TurnResult, myHand: Set<Card>)
 
     fun move(turnInfo: TurnInfo): Move
 }

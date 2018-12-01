@@ -49,11 +49,12 @@ internal class GoFishGame(
         for (player in game.players) {
             player.movePicker.gameStarted(game.playerNames, player.name, player.hand.immutableCopy(), initialBooks)
         }
+        if (gameOptions.debug) game.debug()
         while (!game.isOver) {
             val turnResult = step()
             ui?.onTurnCompleted(turnResult, game.scores)
+            for (player in game.players) player.movePicker.afterTurn(turnResult, player.hand.immutableCopy())
             if (gameOptions.debug) game.debug()
-            for (player in game.players) player.movePicker.afterTurn(turnResult)
         }
         ui?.onGameEnded(game.winners, game.scores)
         return game.winners
