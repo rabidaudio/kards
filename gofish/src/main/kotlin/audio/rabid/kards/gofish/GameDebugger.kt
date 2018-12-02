@@ -1,6 +1,6 @@
 package audio.rabid.kards.gofish
 
-import audio.rabid.kards.gofish.ai.cardcounter.CardCounterAi
+import audio.rabid.kards.gofish.ai.cardcounter.DebuggableAI
 import audio.rabid.kards.gofish.models.Game
 
 fun Game.debug() {
@@ -11,6 +11,6 @@ fun Game.debug() {
     }
     println("out: ${players.flatMap { it.books }.joinToString(", ") { it.rank.shortName }}")
     println("=====================")
-    players.first().let { player -> (player.movePicker as? CardCounterAi)?.debug(getTurnInfo(player.name)) }
+    players.first().let { player -> (player.movePicker as? DebuggableAI)?.debug(getTurnInfo(player.name)) }
     print("=====================\n\n")
 }

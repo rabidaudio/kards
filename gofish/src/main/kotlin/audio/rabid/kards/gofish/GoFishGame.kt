@@ -47,13 +47,13 @@ internal class GoFishGame(
         val initialBooks = bookAll()
         ui?.onGameStarted(game.playerNames, initialBooks)
         for (player in game.players) {
-            player.movePicker.gameStarted(game.playerNames, player.name, player.hand.immutableCopy(), initialBooks)
+            player.movePicker.onGameStarted(game.playerNames, player.name, player.hand.immutableCopy(), initialBooks)
         }
         if (gameOptions.debug) game.debug()
         while (!game.isOver) {
             val turnResult = step()
             ui?.onTurnCompleted(turnResult, game.scores)
-            for (player in game.players) player.movePicker.afterTurn(turnResult, player.hand.immutableCopy())
+            for (player in game.players) player.movePicker.onTurnCompleted(turnResult, player.hand.immutableCopy())
             if (gameOptions.debug) game.debug()
         }
         ui?.onGameEnded(game.winners, game.scores)

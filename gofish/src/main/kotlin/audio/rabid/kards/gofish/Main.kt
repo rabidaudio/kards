@@ -1,15 +1,15 @@
 package audio.rabid.kards.gofish
 
 import audio.rabid.kards.gofish.ai.DumbAi
-import audio.rabid.kards.gofish.ai.cardcounter.SimpleCardCounterAI
+import audio.rabid.kards.gofish.ai.cardcounter.BookProbabilityCardCounterAI
 import audio.rabid.kards.gofish.models.GameOptions
 import audio.rabid.kards.gofish.models.PlayerName
 import audio.rabid.kards.gofish.ui.ConsoleUI
 import kotlin.random.Random
 
 fun main(args: Array<String>) {
-//    test()
-    play()
+    test()
+//    play()
 }
 
 fun test() {
@@ -19,7 +19,7 @@ fun test() {
         AiTester(10_000, players, options) { name, random ->
             //        SimpleCardCounterAI()
             when (name) {
-                PlayerName("1") -> SimpleCardCounterAI()
+                PlayerName("1") -> BookProbabilityCardCounterAI()
                 else -> DumbAi(random)
             }
         }.run()
@@ -31,9 +31,9 @@ fun play() {
 
     val game = GoFishGame(
         playerInfo = mapOf(
-            PlayerName("A") to SimpleCardCounterAI(),
-            PlayerName("B") to SimpleCardCounterAI(), //DumbAi(random),
-            PlayerName("C") to SimpleCardCounterAI()  //DumbAi(random)
+            PlayerName("A") to BookProbabilityCardCounterAI(),
+            PlayerName("B") to DumbAi(random),
+            PlayerName("C") to DumbAi(random)
         ),
         gameOptions = GameOptions(debug = true),
         random = random

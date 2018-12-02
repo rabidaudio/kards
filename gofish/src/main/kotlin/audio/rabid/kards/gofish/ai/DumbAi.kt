@@ -12,14 +12,14 @@ import kotlin.random.Random
  */
 class DumbAi(private val random: Random) : MovePicker {
 
-    override fun gameStarted(
+    override fun onGameStarted(
         playerNames: List<PlayerName>,
         myPlayerName: PlayerName,
         myHand: Set<Card>,
         bookedAtStart: Map<PlayerName, Set<Rank>>
     ) {}
 
-    override fun afterTurn(turnResult: TurnResult, myHand: Set<Card>) {}
+    override fun onTurnCompleted(turnResult: TurnResult, myHand: Set<Card>) {}
 
     override fun move(turnInfo: TurnInfo): Move = turnInfo.possibleMoves.random(random)
 }

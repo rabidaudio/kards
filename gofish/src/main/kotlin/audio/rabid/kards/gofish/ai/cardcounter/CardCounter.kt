@@ -3,7 +3,7 @@ package audio.rabid.kards.gofish.ai.cardcounter
 import audio.rabid.kards.core.deck.standard.Rank
 import audio.rabid.kards.gofish.models.PlayerName
 
-class CardCounter(players: List<PlayerName>) : ArrayHelper<PlayerName, Rank> {
+class CardCounter(val players: List<PlayerName>) : ArrayHelper<PlayerName, Rank> {
 
     companion object {
         private val POSSIBLE_RANGE = 0..3
@@ -32,6 +32,12 @@ class CardCounter(players: List<PlayerName>) : ArrayHelper<PlayerName, Rank> {
 
     private fun IntRange.clampTo(outerRange: IntRange): IntRange =
         first.coerceAtLeast(outerRange.first)..endInclusive.coerceAtMost(outerRange.endInclusive)
+
+    fun clone(): CardCounter = CardCounter(players).also { copy ->
+        for ((index, value) in this.cardCountTable.withIndex()) {
+            copy.cardCountTable[index] = value
+        }
+    }
 }
 
 fun CardCounter.setNone(playerName: PlayerName, rank: Rank) = setExactly(playerName, rank, 0)

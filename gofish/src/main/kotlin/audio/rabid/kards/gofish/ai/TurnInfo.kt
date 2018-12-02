@@ -8,6 +8,7 @@ import audio.rabid.kards.gofish.models.PlayerName
 
 data class TurnInfo(
     val myHand: Set<Card>,
+    val myPlayerName: PlayerName,
     val oceanSize: Int,
     val otherPlayerHandSizes: Map<PlayerName, Int>
 ) {
@@ -20,4 +21,6 @@ data class TurnInfo(
 
     private val myRanks: Set<Rank>
         get() = myHand.map { it.rank }.toSet()
+
+    val allPlayerHandSizes = otherPlayerHandSizes + Pair(myPlayerName, myHand.size)
 }

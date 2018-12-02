@@ -29,6 +29,7 @@ data class Game(
 
     fun getTurnInfo(playerName: PlayerName): TurnInfo = TurnInfo(
         myHand = getPlayer(playerName).hand.immutableCopy(),
+        myPlayerName = playerName,
         oceanSize = ocean.size,
         otherPlayerHandSizes = players.filter { it.name != playerName }.associate { it.name to it.hand.size }
     )

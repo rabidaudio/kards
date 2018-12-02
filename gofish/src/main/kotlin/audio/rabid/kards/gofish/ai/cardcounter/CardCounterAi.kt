@@ -12,19 +12,17 @@ import audio.rabid.kards.gofish.models.TurnResult
 
 abstract class CardCounterAi : MovePicker {
 
-    companion object {
-        private val Ranks = Rank.ALL
-    }
-
     private lateinit var playerNames: List<PlayerName>
     private lateinit var myPlayerName: PlayerName
     private lateinit var cardCounter: CardCounter
 
     private val completedBooks = mutableSetOf<Rank>()
 
-    private val outstandingRanks get() = Ranks - completedBooks
+    protected val outstandingRanks get() = Rank.ALL - completedBooks
+    protected fun getPlayerNames() = playerNames
+    protected fun getCardCounter() = cardCounter
 
-    override fun gameStarted(
+    override fun onGameStarted(
         playerNames: List<PlayerName>,
         myPlayerName: PlayerName,
         myHand: Set<Card>,
@@ -38,25 +36,24 @@ abstract class CardCounterAi : MovePicker {
         }
     }
 
-    override fun afterTurn(turnResult: TurnResult, myHand: Set<Card>) {
+    override fun onTurnCompleted(turnResult: TurnResult, myHand: Set<Card>) {
         cardCounter.trackMove(turnResult)
         cardCounter.trackMyHand(myHand)
     }
 
     override fun move(turnInfo: TurnInfo): Move {
         cardCounter.trackMyHand(turnInfo.myHand)
-        val scorer = Scorer(turnInfo)
-        return pickMove(turnInfo, scorer)
+        return pickMove(turnInfo)
     }
 
-    abstract fun pickMove(turnInfo: TurnInfo, scorer: Scorer): Move
+    abstract fun pickMove(turnInfo: TurnInfo): Move
 
-    private fun CardCounter.trackBooked(rank: Rank) {
+    fun CardCounter.trackBooked(rank: Rank) {
         completedBooks.add(rank)
         for (playerName in playerNames) setNone(playerName, rank)
     }
 
-    private fun CardCounter.trackMove(turnResult: TurnResult) {
+    fun CardCounter.trackMove(turnResult: TurnResult) {
         val (fromPlayer, move, result, turnEnded, newBook) = turnResult
         val (rank, toPlayer) = move
         // because they asked, we know they have at least one
@@ -82,48 +79,10 @@ abstract class CardCounterAi : MovePicker {
         newBook?.let { trackBooked(it) }
     }
 
-    private fun CardCounter.trackMyHand(myHand: Set<Card>) {
-        for (rank in Ranks) {
+    fun CardCounter.trackMyHand(myHand: Set<Card>) {
+        for (rank in Rank.ALL) {
             val numberInMyHand = myHand.count { it.matches(rank) }
             setExactly(myPlayerName, rank, numberInMyHand)
         }
-    }
-
-    fun debug(turnInfo: TurnInfo) {
-        val playerScores = playerNames.associateWith { p ->
-            Ranks.associateWith { r -> Scorer(turnInfo).getScore(p, r) }
-        }
-        ScorePrinter(outstandingRanks, playerScores).print()
-    }
-
-    inner class Scorer(private val turnInfo: TurnInfo) {
-
-        fun getScore(playerName: PlayerName, rank: Rank): Double {
-            // the score is the known number of that card in that persons hand,
-            // plus the probability of the unknown cards being that rank, weighted by unknown hand size
-            val minNumber = cardCounter.getMin(playerName, rank).toDouble()
-            val probabilityDistribution = Ranks.sumByDouble { r -> getProbability(playerName, r) }
-            if (probabilityDistribution == 0.0) return minNumber
-            val unknownHandSize = turnInfo.getUnknownHandSize(playerName).toDouble()
-            return minNumber + (getProbability(playerName, rank) / probabilityDistribution * unknownHandSize)
-        }
-
-        private fun getProbability(playerName: PlayerName, rank: Rank): Double {
-            // the probability they have one of those cards is the probability that any unknown card is that card,
-            // weighted by the number of unknown cards in their hand
-            val possibleLocationsInGame = turnInfo.oceanSize +
-                    turnInfo.otherPlayerNames.sumBy { p -> cardCounter.getDifferential(p, rank) }
-            val possibleLocationsInHand = cardCounter.getDifferential(playerName, rank)
-            val knownInstancesInGame = playerNames.sumBy { p -> cardCounter.getMin(p, rank) }
-            val unknownInstancesInGame = 4 - knownInstancesInGame
-            return possibleLocationsInHand.toDouble() *
-                    unknownInstancesInGame.toDouble() / possibleLocationsInGame.toDouble()
-        }
-
-        private fun TurnInfo.getHandSize(playerName: PlayerName) =
-            if (playerName == myPlayerName) myHand.size else otherPlayerHandSizes[playerName]!!
-
-        private fun TurnInfo.getUnknownHandSize(playerName: PlayerName) =
-            getHandSize(playerName) - Ranks.sumBy { cardCounter.getMin(playerName, it) }
     }
 }

@@ -8,14 +8,14 @@ import audio.rabid.kards.gofish.models.TurnResult
 
 interface MovePicker {
 
-    fun gameStarted(
+    fun onGameStarted(
         playerNames: List<PlayerName>,
         myPlayerName: PlayerName,
         myHand: Set<Card>,
         bookedAtStart: Map<PlayerName, Set<Rank>>
     )
 
-    fun afterTurn(turnResult: TurnResult, myHand: Set<Card>)
+    fun onTurnCompleted(turnResult: TurnResult, myHand: Set<Card>)
 
     fun move(turnInfo: TurnInfo): Move
 }

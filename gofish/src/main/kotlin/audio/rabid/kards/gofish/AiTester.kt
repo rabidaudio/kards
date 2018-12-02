@@ -43,7 +43,7 @@ class AiTester(
 
             jobs.add(launch(cpuMaxingContext) {
                 if (i % 100 == 0) println("running game $i")
-                val playerInfo = players.associateWith { aiBuilder(it, random) }
+                val playerInfo = players.associateWith { aiBuilder.invoke(it, random) }
                 val game = GoFishGame(playerInfo, gameOptions, random)
                 val winners = game.play(null)
                 for (player in players) {
@@ -58,15 +58,13 @@ class AiTester(
 
         jobs.forEach { it.join() }
         val end = System.currentTimeMillis()
-        val maxNameSize = players.map { it.name.length }.max()!!
+        val completeNames = players.associateWith { p -> aiBuilder.invoke(p, Random).javaClass.simpleName }
+        val maxNameSize = completeNames.values.map { it.length }.max()!!
         for ((playerName, scorecard) in scores) {
-            print(playerName.name.padStart(maxNameSize))
+            print(completeNames[playerName]!!.padStart(maxNameSize))
             print(": ")
-            print(String.format("%7d", scorecard.wins.get()))
             print(String.format("%7.4f", scorecard.wins.get().toDouble() / testRuns.toDouble()))
-            print(String.format("%7d", scorecard.ties.get()))
             print(String.format("%7.4f", scorecard.ties.get().toDouble() / testRuns.toDouble()))
-            print(String.format("%7d", scorecard.losses.get()))
             print(String.format("%7.4f", scorecard.losses.get().toDouble() / testRuns.toDouble()))
             println()
         }
