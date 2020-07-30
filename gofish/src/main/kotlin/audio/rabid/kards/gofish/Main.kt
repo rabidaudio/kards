@@ -7,8 +7,8 @@ import audio.rabid.kards.gofish.models.PlayerName
 import audio.rabid.kards.gofish.ui.ConsoleUI
 import kotlin.random.Random
 
-fun main(args: Array<String>) {
-//    test()
+fun main() {
+    // test()
     play()
 }
 
@@ -17,7 +17,7 @@ fun test() {
         val players = (1..(opponents + 1)).map { PlayerName(it.toString()) }
         val options = GameOptions()
         AiTester(10_000, players, options) { name, random ->
-            //        SimpleCardCounterAI()
+            // SimpleCardCounterAI()
             when (name) {
                 PlayerName("1") -> SimpleCardCounterAI()
                 else -> DumbAi(random)
@@ -32,8 +32,8 @@ fun play() {
     val game = GoFishGame(
         playerInfo = mapOf(
             PlayerName("A") to SimpleCardCounterAI(),
-            PlayerName("B") to SimpleCardCounterAI(), //DumbAi(random),
-            PlayerName("C") to SimpleCardCounterAI()  //DumbAi(random)
+            PlayerName("B") to SimpleCardCounterAI(), // DumbAi(random),
+            PlayerName("C") to SimpleCardCounterAI() // DumbAi(random)
         ),
         gameOptions = GameOptions(debug = true),
         random = random

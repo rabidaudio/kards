@@ -48,9 +48,9 @@ class AiTester(
                 val winners = game.play(null)
                 for (player in players) {
                     when {
-                        winners.size == 1 && winners.contains(player) -> scores[player]!!.wins.incrementAndGet()
-                        winners.size > 1 && winners.contains(player) -> scores[player]!!.ties.incrementAndGet()
-                        else -> scores[player]!!.losses.incrementAndGet()
+                        winners.size == 1 && winners.contains(player) -> scores.getValue(player).wins.incrementAndGet()
+                        winners.size > 1 && winners.contains(player) -> scores.getValue(player).ties.incrementAndGet()
+                        else -> scores.getValue(player).losses.incrementAndGet()
                     }
                 }
             })

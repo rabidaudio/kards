@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "1.3.10" apply false
-    id("io.gitlab.arturbosch.detekt") version "1.0.0-RC11" apply false
+    kotlin("jvm") version "1.3.70" apply false
+    id("io.gitlab.arturbosch.detekt") version "1.10.0" apply false
 }
 
 allprojects {

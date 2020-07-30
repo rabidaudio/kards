@@ -17,9 +17,13 @@ class DumbAi(private val random: Random) : MovePicker {
         myPlayerName: PlayerName,
         myHand: Set<Card>,
         bookedAtStart: Map<PlayerName, Set<Rank>>
-    ) {}
+    ) {
+        // no-op
+    }
 
-    override fun afterTurn(turnResult: TurnResult, myHand: Set<Card>) {}
+    override fun afterTurn(turnResult: TurnResult, myHand: Set<Card>) {
+        // no-op
+    }
 
     override fun move(turnInfo: TurnInfo): Move = turnInfo.possibleMoves.random(random)
 }
