@@ -19,11 +19,30 @@ class AiTester(
     private val aiBuilder: (PlayerName, Random) -> MovePicker
 ) {
 
-    data class ScoreCard(
-        val wins: AtomicInteger = AtomicInteger(0),
-        val ties: AtomicInteger = AtomicInteger(0),
-        val losses: AtomicInteger = AtomicInteger(0)
-    )
+    class ScoreCard {
+        private val wins: AtomicInteger = AtomicInteger(0)
+        private val ties: AtomicInteger = AtomicInteger(0)
+        private val losses: AtomicInteger = AtomicInteger(0)
+
+        fun trackWin() = wins.incrementAndGet()
+        fun trackTie() = ties.incrementAndGet()
+        fun trackLoss() = losses.incrementAndGet()
+
+        private val gamesPlayed: Int
+            get() = wins.get() + ties.get() + losses.get()
+
+        val winProbability: Double
+            get() = wins.get().toDouble() / gamesPlayed.toDouble()
+
+        val tieProbability: Double
+            get() = ties.get().toDouble() / gamesPlayed.toDouble()
+
+        val lossProbability: Double
+            get() = losses.get().toDouble() / gamesPlayed.toDouble()
+
+        // see: https://en.wikipedia.org/wiki/Elo_rating_system#Mathematical_details
+        val score: Double get() = winProbability + 0.5 * tieProbability
+    }
 
     private val scores = players.associateWith { ScoreCard() }
 
@@ -48,9 +67,9 @@ class AiTester(
                 val winners = game.play(null)
                 for (player in players) {
                     when {
-                        winners.size == 1 && winners.contains(player) -> scores[player]!!.wins.incrementAndGet()
-                        winners.size > 1 && winners.contains(player) -> scores[player]!!.ties.incrementAndGet()
-                        else -> scores[player]!!.losses.incrementAndGet()
+                        winners.size == 1 && winners.contains(player) -> scores[player]!!.trackWin()
+                        winners.size > 1 && winners.contains(player) -> scores[player]!!.trackTie()
+                        else -> scores[player]!!.trackLoss()
                     }
                 }
             })
@@ -63,9 +82,10 @@ class AiTester(
         for ((playerName, scorecard) in scores) {
             print(completeNames[playerName]!!.padStart(maxNameSize))
             print(": ")
-            print(String.format("%7.4f", scorecard.wins.get().toDouble() / testRuns.toDouble()))
-            print(String.format("%7.4f", scorecard.ties.get().toDouble() / testRuns.toDouble()))
-            print(String.format("%7.4f", scorecard.losses.get().toDouble() / testRuns.toDouble()))
+            print(String.format("%7.4f", scorecard.winProbability))
+            print(String.format("%7.4f", scorecard.tieProbability))
+            print(String.format("%7.4f", scorecard.lossProbability))
+            print(String.format("%7.4f", scorecard.score))
             println()
         }
         println("run time: ${(end - start) / 1000.0}s")

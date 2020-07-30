@@ -7,7 +7,7 @@ import audio.rabid.kards.gofish.models.Move
 /**
  * Just pick the move with the highest score
  */
-class SimpleCardCounterAI : CardCounterAi(), DebuggableAI {
+class SimpleCardCounterAI : CardCounterAi(), DebuggableAi {
 
     override fun pickMove(turnInfo: TurnInfo): Move {
         val scorer = turnInfo.getScorer()

@@ -14,7 +14,7 @@ import audio.rabid.kards.gofish.models.TurnResult
  *
  * Note: Its a really bad algorithm. Often places worse than random move selection.
  */
-class BookProbabilityCardCounterAI : CardCounterAi(), DebuggableAI {
+class BookProbabilityCardCounterAI : CardCounterAi(), DebuggableAi {
 
     private lateinit var otherPlayersCardCounter: CardCounter
 
@@ -25,7 +25,7 @@ class BookProbabilityCardCounterAI : CardCounterAi(), DebuggableAI {
         bookedAtStart: Map<PlayerName, Set<Rank>>
     ) {
         super.onGameStarted(playerNames, myPlayerName, myHand, bookedAtStart)
-        otherPlayersCardCounter = CardCounter(playerNames)
+        otherPlayersCardCounter = getCardCounter().clone()
     }
 
     override fun onTurnCompleted(turnResult: TurnResult, myHand: Set<Card>) {

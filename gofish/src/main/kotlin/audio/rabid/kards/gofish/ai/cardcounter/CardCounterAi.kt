@@ -48,11 +48,6 @@ abstract class CardCounterAi : MovePicker {
 
     abstract fun pickMove(turnInfo: TurnInfo): Move
 
-    fun CardCounter.trackBooked(rank: Rank) {
-        completedBooks.add(rank)
-        for (playerName in playerNames) setNone(playerName, rank)
-    }
-
     fun CardCounter.trackMove(turnResult: TurnResult) {
         val (fromPlayer, move, result, turnEnded, newBook) = turnResult
         val (rank, toPlayer) = move
@@ -77,6 +72,11 @@ abstract class CardCounterAi : MovePicker {
         }
         // if they booked a new rank, track it
         newBook?.let { trackBooked(it) }
+    }
+
+    fun CardCounter.trackBooked(rank: Rank) {
+        completedBooks.add(rank)
+        for (playerName in playerNames) setNone(playerName, rank)
     }
 
     fun CardCounter.trackMyHand(myHand: Set<Card>) {

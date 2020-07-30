@@ -1,5 +1,6 @@
 package audio.rabid.kards.gofish.ai.cardcounter
 
+import audio.rabid.kards.core.deck.standard.Card
 import audio.rabid.kards.core.deck.standard.Rank
 import audio.rabid.kards.gofish.models.PlayerName
 
