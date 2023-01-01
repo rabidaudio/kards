@@ -10,7 +10,7 @@ import audio.rabid.kards.core.deck.standard.handOf
 import audio.rabid.kards.core.deck.standard.placeOnBottom
 import audio.rabid.kards.gofish.ai.MovePicker
 import audio.rabid.kards.gofish.models.Book
-import audio.rabid.kards.gofish.models.Game
+import audio.rabid.kards.gofish.models.GameState
 import audio.rabid.kards.gofish.models.GameOptions
 import audio.rabid.kards.gofish.models.GoFish
 import audio.rabid.kards.gofish.models.HandOver
@@ -22,13 +22,13 @@ import audio.rabid.kards.gofish.models.TurnResult
 import audio.rabid.kards.gofish.ui.UI
 import kotlin.random.Random
 
-internal class GoFishGame(
+internal class Game(
     playerInfo: Map<PlayerName, MovePicker>,
     val gameOptions: GameOptions,
     private val random: Random
 ) {
 
-    private val game: Game = run {
+    private val gameState: GameState = run {
         // start with a 52 card deck and shuffle it
         val deck = Decks.standard().apply { shuffle(random) }
         // for each player, draw 7 cards into their hand
@@ -40,53 +40,53 @@ internal class GoFishGame(
         }
         // sort each player's hand so it's easier to see
         for (player in players) player.hand.sort()
-        Game(deck, players)
+        GameState(deck, players)
     }
 
     fun play(ui: UI? = null): Set<PlayerName> {
         val initialBooks = bookAll()
-        ui?.onGameStarted(game.playerNames, initialBooks)
-        for (player in game.players) {
-            player.movePicker.gameStarted(game.playerNames, player.name, player.hand.immutableCopy(), initialBooks)
+        ui?.onGameStarted(gameState.playerNames, initialBooks)
+        for (player in gameState.players) {
+            player.movePicker.gameStarted(gameState.playerNames, player.name, player.hand.immutableCopy(), initialBooks)
         }
-        if (gameOptions.debug) game.debug()
-        while (!game.isOver) {
+        if (gameOptions.debug) gameState.debug()
+        while (!gameState.isOver) {
             val turnResult = step()
-            ui?.onTurnCompleted(turnResult, game.scores)
-            for (player in game.players) player.movePicker.afterTurn(turnResult, player.hand.immutableCopy())
-            if (gameOptions.debug) game.debug()
+            ui?.onTurnCompleted(turnResult, gameState.scores)
+            for (player in gameState.players) player.movePicker.afterTurn(turnResult, player.hand.immutableCopy())
+            if (gameOptions.debug) gameState.debug()
         }
-        ui?.onGameEnded(game.winners, game.scores)
-        return game.winners
+        ui?.onGameEnded(gameState.winners, gameState.scores)
+        return gameState.winners
     }
 
     private fun step(): TurnResult {
-        val move = game.currentPlayer.movePicker.move(game.getTurnInfo(game.currentPlayerName))
+        val move = gameState.currentPlayer.movePicker.move(gameState.getTurnInfo(gameState.currentPlayerName))
         val result = move.run()
         val nextPlayer = when (result) {
             GoFish -> {
-                val drawn = game.ocean.drawOne()
-                if (drawn != null) game.currentPlayer.hand.placeOnBottom(drawn)
+                val drawn = gameState.ocean.drawOne()
+                if (drawn != null) gameState.currentPlayer.hand.placeOnBottom(drawn)
                 // if they drew what they asked for they go again
                 drawn?.rank != move.askFor
             }
             is HandOver -> {
-                game.currentPlayer.hand.placeOnBottom(CardSet.create(result.cards))
+                gameState.currentPlayer.hand.placeOnBottom(CardSet.create(result.cards))
                 // they got a match, so they go again
                 false
             }
         }
         // have the player book cards from hand
-        val book = game.currentPlayer.book(move.askFor)
+        val book = gameState.currentPlayer.book(move.askFor)
         // sort each player's hand so it's easier to see
-        game.currentPlayer.hand.sort()
-        val turnResult = TurnResult(game.currentPlayerName, move, result, nextPlayer, book?.rank)
-        if (nextPlayer) game.currentPlayerName = game.nextPlayerName
+        gameState.currentPlayer.hand.sort()
+        val turnResult = TurnResult(gameState.currentPlayerName, move, result, nextPlayer, book?.rank)
+        if (nextPlayer) gameState.currentPlayerName = gameState.nextPlayerName
         return turnResult
     }
 
     private fun bookAll(): Map<PlayerName, Set<Rank>> {
-        return game.players.associate { player ->
+        return gameState.players.associate { player ->
             player.name to Rank.ALL.mapNotNull { player.book(it) }.map { it.rank }.toSet()
         }
     }
@@ -100,18 +100,18 @@ internal class GoFishGame(
     }
 
     private fun Move.run(): MoveResult {
-        if (!isLegal) throw IllegalStateException("Illegal move by player ${game.currentPlayerName}")
+        if (!isLegal) throw IllegalStateException("Illegal move by player ${gameState.currentPlayerName}")
         if (!targetPlayer.hasCardsOfRank(askFor)) return GoFish
         val passedCards = targetPlayer.hand.drawAllWhere { it.rank == askFor }
         return HandOver(passedCards.immutableCopy())
     }
 
-    private val Move.targetPlayer get() = game.getPlayer(from)
+    private val Move.targetPlayer get() = gameState.getPlayer(from)
 
     private fun Player.hasCardsOfRank(rank: Rank): Boolean = hand.any { it.rank == rank }
 
     private val Move.isLegal: Boolean
-        get() = game.currentPlayer.hand.any { it.rank == askFor } &&
-                game.players.any { it.name == from } &&
-                game.currentPlayerName != from
+        get() = gameState.currentPlayer.hasCardsOfRank(askFor) &&
+                gameState.players.any { it.name == from } &&
+                gameState.currentPlayerName != from
 }

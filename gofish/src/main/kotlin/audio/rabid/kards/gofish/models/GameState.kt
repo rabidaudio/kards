@@ -3,7 +3,7 @@ package audio.rabid.kards.gofish.models
 import audio.rabid.kards.core.deck.standard.Rank
 import audio.rabid.kards.gofish.ai.TurnInfo
 
-data class Game(
+data class GameState(
     val ocean: Ocean,
     val players: List<Player>,
     var currentPlayerName: PlayerName = players.first().name

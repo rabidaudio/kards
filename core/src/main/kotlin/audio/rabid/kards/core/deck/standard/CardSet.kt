@@ -38,23 +38,26 @@ class CardSet private constructor(private val cards: MutableList<Card>) : Collec
         else -> cards.removeAt(position)
     }
 
-    fun drawUntil(block: (Card?) -> Boolean): CardSet {
+    fun drawUntil(includeMatched: Boolean = true, block: (Card) -> Boolean): CardSet {
         val drawn = mutableListOf<Card>()
         while (true) {
-            val card = cards.firstOrNull()
-            if (block.invoke(card)) break
-            if (card != null) {
-                drawn.add(card)
-                cards.removeAt(0)
+            val card = cards.firstOrNull() ?: return CardSet(drawn)
+            if (block.invoke(card)) {
+                if (includeMatched) {
+                    drawn.add(card)
+                    cards.removeAt(0)
+                }
+                return CardSet(drawn)
             }
+            drawn.add(card)
+            cards.removeAt(0)
         }
-        return CardSet(drawn)
     }
 
     fun drawAllWhere(block: (Card) -> Boolean): CardSet {
         val drawn = cards.filter(block)
         cards.removeAll(drawn)
-        return CardSet.create(drawn)
+        return create(drawn)
     }
 
     fun insertAtPosition(position: Int, card: Card) {

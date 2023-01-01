@@ -1,9 +1,9 @@
 package audio.rabid.kards.gofish
 
 import audio.rabid.kards.gofish.ai.cardcounter.CardCounterAi
-import audio.rabid.kards.gofish.models.Game
+import audio.rabid.kards.gofish.models.GameState
 
-fun Game.debug() {
+fun GameState.debug() {
     println("ocean: ${ocean.size}")
     for (player in players) {
         val hand = player.hand.joinToString(", ") { it.shortName }

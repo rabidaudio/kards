@@ -44,7 +44,7 @@ class AiTester(
             jobs.add(launch(cpuMaxingContext) {
                 if (i % 100 == 0) println("running game $i")
                 val playerInfo = players.associateWith { aiBuilder(it, random) }
-                val game = GoFishGame(playerInfo, gameOptions, random)
+                val game = Game(playerInfo, gameOptions, random)
                 val winners = game.play(null)
                 for (player in players) {
                     when {

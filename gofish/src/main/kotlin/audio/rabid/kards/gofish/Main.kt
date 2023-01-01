@@ -29,7 +29,7 @@ fun test() {
 fun play() {
     val random = Random(0)
 
-    val game = GoFishGame(
+    val game = Game(
         playerInfo = mapOf(
             PlayerName("A") to SimpleCardCounterAI(),
             PlayerName("B") to SimpleCardCounterAI(), // DumbAi(random),
